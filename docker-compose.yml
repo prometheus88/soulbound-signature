@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: soulbound-signature-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-soulbound}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-soulbound}
+      POSTGRES_DB: ${POSTGRES_DB:-soulbound_signature}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-soulbound}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    container_name: soulbound-signature-backend
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-soulbound}:${POSTGRES_PASSWORD:-soulbound}@postgres:5432/${POSTGRES_DB:-soulbound_signature}
+      - APTOS_NETWORK=${APTOS_NETWORK:-testnet}
+      - PAYMENT_RECIPIENT_ADDRESS=${PAYMENT_RECIPIENT_ADDRESS:-0xe180ab508e40206c6d9ca9e18296178dad1c2fa47d500b02a5b36cd0a26273eb}
+      - FACILITATOR_URL=${FACILITATOR_URL:-https://x402-navy.vercel.app/facilitator}
+      - SIGNATURE_PRICE_USDC=${SIGNATURE_PRICE_USDC:-1}
+      - USDC_ASSET_ADDRESS=${USDC_ASSET_ADDRESS:-0x69091fbab5f7d635ee7ac5098cf0c1efbe31d68fec0f2cd565e8d168daf52832}
+      - KYC_COLLECTION_ADDRESS=${KYC_COLLECTION_ADDRESS}
+      - KYC_MODULE_ADDRESS=${KYC_MODULE_ADDRESS}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/uploads
+
+  frontend:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    container_name: soulbound-signature-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads_data:
