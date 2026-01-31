@@ -1,0 +1,39 @@
+# Fly.io configuration for Soulbound Signature Backend
+app = "soulbound-signature-api"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  BACKEND_PORT = "8080"
+  APTOS_NETWORK = "testnet"
+  MAX_FILE_SIZE = "50mb"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[checks]
+  [checks.health]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    port = 8080
+    timeout = "5s"
+    type = "http"
+
+[[mounts]]
+  source = "soulbound_uploads"
+  destination = "/app/uploads"
