@@ -32,12 +32,18 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, curl, etc)
     if (!origin) return callback(null, true);
     
-    // Allow configured frontend URL and common development origins
+    // Allow configured frontend URL, fly.dev domains, and common development origins
     const allowedOrigins = [
       config.frontendUrl,
       'http://localhost:3000',
       'http://localhost:4000',
+      'https://soulbound-signature-web.fly.dev',
     ].filter(Boolean);
+    
+    // Also allow any *.fly.dev subdomain for flexibility
+    if (origin.endsWith('.fly.dev')) {
+      return callback(null, true);
+    }
     
     if (allowedOrigins.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')))) {
       return callback(null, true);
